@@ -6,7 +6,7 @@ on:
             - 'LICENSE'
             - 'docs/**'
         branches: [ main ]
-    workflow_dispatch: 
+    workflow_dispatch:
     push:
         branches:
             - main
