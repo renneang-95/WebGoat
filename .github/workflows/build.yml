@@ -124,6 +124,7 @@ jobs:
                     NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
                     NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
                 run: ./mvnw --no-transfer-progress verify -DskipITs
+
             -   name: Sonatype Lifecycle scan
                 uses: sonatype/actions/evaluate@v1
                 with:
@@ -133,6 +134,49 @@ jobs:
                     application-id: WebGoat__renneang-95
                     scan-targets: pom.xml
                     stage: build
+
+            -   name: Verify Java and Maven 2
+                run: |
+                    echo "=== JAVA ==="
+                    java -version
+
+                    echo "=== JAVAC ==="
+                    javac -version
+
+                    echo "=== JAVA_HOME ==="
+                    echo "$JAVA_HOME"
+
+                    echo "=== JAVA LOCATION ==="
+                    which java
+                    which javac
+
+                    echo "=== MAVEN ==="
+                    echo ./mvnw -version
+
+                    echo "${{ secrets.IQ_SERVER_URL }}"
+
+            -   name: Set up JDK 2
+                uses: ./.github/actions/java-setup
+                with:
+                    cache: 'maven'
+
+            -   name: Verify Java and Maven 3
+                run: |
+                    echo "=== JAVA ==="
+                    java -version
+
+                    echo "=== JAVAC ==="
+                    javac -version
+
+                    echo "=== JAVA_HOME ==="
+                    echo "$JAVA_HOME"
+
+                    echo "=== JAVA LOCATION ==="
+                    which java
+                    which javac
+
+                    echo "=== MAVEN ==="
+                    ./mvnw -version
 
             # ---------- 3. Nexus Repository ----------
             # Only publish from main -- PR builds stop after verify.
