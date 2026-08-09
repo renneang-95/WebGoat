@@ -12,7 +12,15 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:docs.github.com)",
       "PowerShell(python \"C:\\\\Users\\\\IRENE~1.ANG\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-irene-angreini-izeno-Documents-Code-WebGoat-webgoat-github\\\\2355baf3-8c23-4aa7-86fa-99cf776633e3\\\\scratchpad\\\\check.py\")",
-      "PowerShell(git ls-files .mvn/; echo \"--- MVNW_USERNAME support in mvnw:\"; Select-String -Path mvnw -Pattern \"MVNW_USERNAME|MVNW_PASSWORD|wrapperUrl|distributionUrl\" | ForEach-Object { \"$\\($_.LineNumber\\): $\\($_.Line.Trim\\(\\)\\)\" })"
+      "PowerShell(git ls-files .mvn/; echo \"--- MVNW_USERNAME support in mvnw:\"; Select-String -Path mvnw -Pattern \"MVNW_USERNAME|MVNW_PASSWORD|wrapperUrl|distributionUrl\" | ForEach-Object { \"$\\($_.LineNumber\\): $\\($_.Line.Trim\\(\\)\\)\" })",
+      "PowerShell(python -m pip install --quiet pre-commit)",
+      "PowerShell(python -m pre_commit --version)",
+      "PowerShell(python -m pre_commit run check-yaml end-of-file-fixer trailing-whitespace --all-files)",
+      "PowerShell(python -m pre_commit run --show-diff-on-failure --all-files)",
+      "PowerShell(python -m pre_commit run maven --all-files --verbose 2>&1)",
+      "Bash(./mvnw -v)",
+      "Bash(echo \"=== exit: $? ===\")",
+      "Bash(./mvnw clean *)"
     ]
   }
 }
