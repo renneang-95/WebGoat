@@ -112,6 +112,15 @@ jobs:
                     NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
                     NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
                 run: ./mvnw --no-transfer-progress verify -DskipITs
+            -   name: Sonatype Lifecycle scan
+                uses: sonatype/actions/evaluate@v1
+                with:
+                    iq-server-url: ${{ secrets.IQ_SERVER_URL }}
+                    username: ${{ secrets.IQ_USERNAME }}
+                    password: ${{ secrets.IQ_PASSWORD }}
+                    application-id: WebGoat__renneang-95
+                    scan-targets: pom.xml
+                    stage: build
 
             # ---------- 3. Nexus Repository ----------
             # Only publish from main -- PR builds stop after verify.
