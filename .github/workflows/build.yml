@@ -160,23 +160,32 @@ jobs:
                 with:
                     cache: 'maven'
 
-            -   name: Verify Java and Maven 3
+            -   name: Verify Nexus credentials and Maven environment
+                env:
+                    NEXUS_URL: ${{ secrets.NEXUS_URL }}
+                    NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+                    NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
                 run: |
-                    echo "=== JAVA ==="
-                    java -version
+                    echo "NEXUS_URL=$NEXUS_URL"
+                    test -n "$NEXUS_USERNAME" && echo "NEXUS_USERNAME is set"
+                    test -n "$NEXUS_PASSWORD" && echo "NEXUS_PASSWORD is set"
 
-                    echo "=== JAVAC ==="
+                    echo "=== Java ==="
+                    java -version
                     javac -version
 
-                    echo "=== JAVA_HOME ==="
-                    echo "$JAVA_HOME"
-
-                    echo "=== JAVA LOCATION ==="
-                    which java
-                    which javac
-
-                    echo "=== MAVEN ==="
+                    echo "=== Maven ==="
                     ./mvnw -version
+
+                    echo "=== Maven settings ==="
+                    cat ~/.m2/settings.xml
+
+                    echo "=== Nexus authentication ==="
+                    curl -sS \
+                    -u "$NEXUS_USERNAME:$NEXUS_PASSWORD" \
+                    -o /dev/null \
+                    -w "HTTP Status: %{http_code}\n" \
+                    "$NEXUS_URL/service/rest/v1/status"
 
             # ---------- 3. Nexus Repository ----------
             # Only publish from main -- PR builds stop after verify.
