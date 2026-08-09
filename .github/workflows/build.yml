@@ -51,11 +51,15 @@ jobs:
         steps:
             # ---------- 1. Set up build environment ----------
             -   uses: actions/checkout@v7
-
             -   name: Set up JDK
                 uses: ./.github/actions/java-setup
                 with:
                     cache: 'maven'
+            -   name: Verify Java and Maven
+                run: |
+                    java -version
+                    echo "JAVA_HOME=$JAVA_HOME"
+                    ./mvnw -version
 
             # The wrapper pins the Maven version, so the runner needs no Maven
             # installed. mvnw is committed 100755, but re-assert it here in case

@@ -20,7 +20,11 @@
       "PowerShell(python -m pre_commit run maven --all-files --verbose 2>&1)",
       "Bash(./mvnw -v)",
       "Bash(echo \"=== exit: $? ===\")",
-      "Bash(./mvnw clean *)"
+      "Bash(./mvnw clean *)",
+      "PowerShell(Get-ChildItem 'C:\\\\Program Files\\\\Java','C:\\\\Program Files\\\\Eclipse Adoptium','C:\\\\Program Files\\\\Microsoft' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name; echo \"--- JAVA_HOME: [$env:JAVA_HOME]\")",
+      "Read(//c/Users/irene.angreini_izeno/Documents/Code/WebGoat/webgoat-github/target/**)",
+      "PowerShell(& .\\\\mvnw.cmd -v 2>&1)",
+      "PowerShell($env:JAVA_HOME)"
     ]
   }
 }
