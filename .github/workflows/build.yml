@@ -83,37 +83,48 @@ jobs:
             # ./mvnw deploy authenticates by <server><id>, so the ids used in
             # altDeploymentRepository below must exist in settings.xml.
             # ${env.*} is resolved by Maven at runtime -- no secrets on disk.
-            -   name: Configure Maven settings for Nexus
+            -   name: Create Maven settings
+                env:
+                    NEXUS_URL: ${{ secrets.NEXUS_URL }}
                 run: |
-                    mkdir -p ~/.m2
-                    cat > ~/.m2/settings.xml <<'EOF'
+                    cat > "$RUNNER_TEMP/maven-settings.xml" <<'EOF'
                     <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
-                      <servers>
+                        <servers>
+
                         <server>
-                          <id>nexus</id>
-                          <username>${env.NEXUS_USERNAME}</username>
-                          <password>${env.NEXUS_PASSWORD}</password>
+                            <id>nexus</id>
+                            <username>${env.NEXUS_USERNAME}</username>
+                            <password>${env.NEXUS_PASSWORD}</password>
                         </server>
+
                         <server>
-                          <id>nexus-snapshots</id>
-                          <username>${env.NEXUS_USERNAME}</username>
-                          <password>${env.NEXUS_PASSWORD}</password>
+                            <id>nexus-snapshots</id>
+                            <username>${env.NEXUS_USERNAME}</username>
+                            <password>${env.NEXUS_PASSWORD}</password>
                         </server>
+
                         <server>
-                          <id>nexus-public</id>
-                          <username>${env.NEXUS_USERNAME}</username>
-                          <password>${env.NEXUS_PASSWORD}</password>
+                            <id>nexus-public</id>
+                            <username>${env.NEXUS_USERNAME}</username>
+                            <password>${env.NEXUS_PASSWORD}</password>
                         </server>
-                      </servers>
-                      <mirrors>
+
+                        </servers>
+
+                        <mirrors>
                         <mirror>
-                          <id>nexus-public</id>
-                          <mirrorOf>*</mirrorOf>
-                          <url>${env.NEXUS_URL}/repository/maven-public/</url>
+                            <id>nexus-public</id>
+                            <mirrorOf>*</mirrorOf>
+                            <url>${env.NEXUS_URL}/repository/maven-public/</url>
                         </mirror>
-                      </mirrors>
+                        </mirrors>
+
                     </settings>
                     EOF
+
+                    echo "Maven settings created at:"
+                    echo "$RUNNER_TEMP/maven-settings.xml"
+
 
             # Nexus Firewall enforcement point. Routing every dependency through
             # the Nexus proxy means quarantined components fail resolution during
@@ -123,7 +134,12 @@ jobs:
                     NEXUS_URL: ${{ secrets.NEXUS_URL }}
                     NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
                     NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-                run: ./mvnw --no-transfer-progress verify -DskipITs
+                run: |
+                    ./mvnw \
+                    -s "$RUNNER_TEMP/maven-settings.xml" \
+                    --no-transfer-progress \
+                    verify \
+                    -DskipITs
 
             -   name: Sonatype Lifecycle scan
                 uses: sonatype/actions/evaluate@v1
@@ -151,11 +167,9 @@ jobs:
                     which javac
 
                     echo "=== MAVEN ==="
-                    echo ./mvnw -version
+                    ./mvnw -version
 
-                    echo "${{ secrets.IQ_SERVER_URL }}"
-
-            -   name: Set up JDK 2
+            -   name: Restore JDK 25 after Lifecycle scan
                 uses: ./.github/actions/java-setup
                 with:
                     cache: 'maven'
@@ -178,7 +192,7 @@ jobs:
                     ./mvnw -version
 
                     echo "=== Maven settings ==="
-                    cat ~/.m2/settings.xml
+                    cat "$RUNNER_TEMP/maven-settings.xml"
 
                     echo "=== Nexus authentication ==="
                     curl -sS \
@@ -196,9 +210,13 @@ jobs:
                     NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
                     NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
                 run: |
-                    ./mvnw --no-transfer-progress deploy -DskipTests \
-                      -DaltSnapshotDeploymentRepository="nexus-snapshots::${NEXUS_URL}/repository/maven-snapshots/" \
-                      -DaltReleaseDeploymentRepository="nexus::${NEXUS_URL}/repository/maven-releases/"
+                    ./mvnw \
+                    -s "$RUNNER_TEMP/maven-settings.xml" \
+                    --no-transfer-progress \
+                    deploy \
+                    -DskipTests \
+                    -DaltSnapshotDeploymentRepository="nexus-snapshots::${NEXUS_URL}/repository/maven-snapshots/" \
+                    -DaltReleaseDeploymentRepository="nexus::${NEXUS_URL}/repository/maven-releases/"
 
             # Resolve the exact coordinates that landed in Nexus. For SNAPSHOTs
             # the deployed filename carries a timestamp, not "-SNAPSHOT", so a
