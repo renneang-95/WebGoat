@@ -23,7 +23,7 @@ concurrency:
 jobs:
     pre-commit:
         name: Pre-commit check
-        runs-on: [self-hosted, linux, x64]
+        runs-on: [self-hosted]
         steps:
             -   name: Checkout git repository
                 uses: actions/checkout@v7
@@ -43,7 +43,7 @@ jobs:
 
     build:
         name: Build and Nexus repo
-        runs-on: [self-hosted, linux, x64]
+        runs-on: [self-hosted]
         needs: [ pre-commit ]
         permissions:
             contents: read
