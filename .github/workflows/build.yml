@@ -1,20 +1,29 @@
 name: "Main / Pull requests build"
+
 on:
     pull_request:
         paths-ignore:
-            - '.txt'
+            - '**.txt'
             - 'LICENSE'
             - 'docs/**'
-        branches: [ main ]
-    workflow_dispatch:
+        branches:
+            - main
     push:
         branches:
             - main
+    workflow_dispatch:
+
+# Self-hosted runners persist between jobs. WebGoat's integration tests bind
+# fixed ports and leave state in ${java.io.tmpdir}/webgoat_<port>, so overlapping
+# runs on the same machine collide.
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
     pre-commit:
         name: Pre-commit check
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, linux, x64]
         steps:
             -   name: Checkout git repository
                 uses: actions/checkout@v7
@@ -31,19 +40,137 @@ jobs:
             -   name: pre-commit-c-lite
                 uses: pre-commit-ci/lite-action@v1.1.0
                 if: always()
+
     build:
-        runs-on: ${{ matrix.os }}
+        name: Build and Nexus repo
+        runs-on: [self-hosted, linux, x64]
         needs: [ pre-commit ]
-        strategy:
-            fail-fast: true
-            matrix:
-                os: [ windows-latest, ubuntu-latest, macos-15-intel ]
-            max-parallel: 1
+        permissions:
+            contents: read
+            security-events: write
         steps:
+            # ---------- 1. Set up build environment ----------
             -   uses: actions/checkout@v7
+
             -   name: Set up JDK
                 uses: ./.github/actions/java-setup
                 with:
                     cache: 'maven'
+
+            # ---------- 2. Nexus Repository credentials ----------
+            # mvn deploy authenticates by <server><id>, so the ids used in
+            # altDeploymentRepository below must exist in settings.xml.
+            # ${env.*} is resolved by Maven at runtime -- no secrets on disk.
+            -   name: Configure Maven settings for Nexus
+                run: |
+                    mkdir -p ~/.m2
+                    cat > ~/.m2/settings.xml <<'EOF'
+                    <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
+                      <servers>
+                        <server>
+                          <id>nexus</id>
+                          <username>${secrets.NEXUS_USERNAME}</username>
+                          <password>${secrets.NEXUS_PASSWORD}</password>
+                        </server>
+                        <server>
+                          <id>nexus-snapshots</id>
+                          <username>${secrets.NEXUS_USERNAME}</username>
+                          <password>${secrets.NEXUS_PASSWORD}</password>
+                        </server>
+                        <server>
+                          <id>nexus-public</id>
+                          <username>${secrets.NEXUS_USERNAME}</username>
+                          <password>${secrets.NEXUS_PASSWORD}</password>
+                        </server>
+                      </servers>
+                      <mirrors>
+                        <mirror>
+                          <id>nexus-public</id>
+                          <mirrorOf>*</mirrorOf>
+                          <url>${secrets.NEXUS_URL}/repository/maven-public/</url>
+                        </mirror>
+                      </mirrors>
+                    </settings>
+                    EOF
+
+            # Nexus Firewall enforcement point. Routing every dependency through
+            # the Nexus proxy means quarantined components fail resolution during
+            # the build below -- there is no separate "firewall" action to call.
             -   name: Build with Maven
+                env:
+                    NEXUS_URL: ${{ secrets.NEXUS_URL }}
+                    NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+                    NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
                 run: mvn --no-transfer-progress verify
+
+            # ---------- 3. Nexus Repository ----------
+            # Only publish from main -- PR builds stop at the policy gate above.
+            -   name: Publish to Nexus Repository
+                if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+                env:
+                    NEXUS_URL: ${{ secrets.NEXUS_URL }}
+                    NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+                    NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+                run: |
+                    mvn --no-transfer-progress deploy -DskipTests \
+                      -DaltSnapshotDeploymentRepository="nexus-snapshots::${NEXUS_URL}/repository/maven-snapshots/" \
+                      -DaltReleaseDeploymentRepository="nexus::${NEXUS_URL}/repository/maven-releases/"
+
+            # Resolve the exact coordinates that landed in Nexus. For SNAPSHOTs
+            # the deployed filename carries a timestamp, not "-SNAPSHOT", so a
+            # later deploy job cannot reconstruct the URL from the pom alone.
+            -   name: Capture published artifact coordinates
+                if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+                id: artifact
+                env:
+                    NEXUS_URL: ${{ secrets.NEXUS_URL }}
+                    NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+                    NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+                run: |
+                    set -euo pipefail
+
+                    GROUP_ID=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.groupId)
+                    ARTIFACT_ID=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.artifactId)
+                    BASE_VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+                    GROUP_PATH="${GROUP_ID//.//}"
+
+                    if [[ "$BASE_VERSION" == *-SNAPSHOT ]]; then
+                      NEXUS_REPO=maven-snapshots
+                      curl -sf -u "$NEXUS_USERNAME:$NEXUS_PASSWORD" \
+                        "${NEXUS_URL}/repository/${NEXUS_REPO}/${GROUP_PATH}/${ARTIFACT_ID}/${BASE_VERSION}/maven-metadata.xml" \
+                        -o /tmp/maven-metadata.xml
+                      EXACT_VERSION=$(grep -oP '(?<=<value>)[^<]+(?=</value>)' \
+                        /tmp/maven-metadata.xml | tail -1)
+                    else
+                      NEXUS_REPO=maven-releases
+                      EXACT_VERSION="$BASE_VERSION"
+                    fi
+
+                    JAR_URL="${NEXUS_URL}/repository/${NEXUS_REPO}/${GROUP_PATH}/${ARTIFACT_ID}/${BASE_VERSION}/${ARTIFACT_ID}-${EXACT_VERSION}.jar"
+
+                    {
+                      echo "GROUP_ID=$GROUP_ID"
+                      echo "ARTIFACT_ID=$ARTIFACT_ID"
+                      echo "BASE_VERSION=$BASE_VERSION"
+                      echo "EXACT_VERSION=$EXACT_VERSION"
+                      echo "NEXUS_REPO=$NEXUS_REPO"
+                      echo "GIT_COMMIT=$(git rev-parse --short HEAD)"
+                      echo "BUILD_NUMBER=${{ github.run_number }}"
+                    } > build-info.properties
+
+                    cat build-info.properties
+                    echo "Published: $JAR_URL"
+
+                    {
+                      echo "exact_version=$EXACT_VERSION"
+                      echo "nexus_repo=$NEXUS_REPO"
+                      echo "jar_url=$JAR_URL"
+                    } >> "$GITHUB_OUTPUT"
+
+            -   name: Upload build-info
+                if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+                uses: actions/upload-artifact@v4
+                with:
+                    name: build-info
+                    path: build-info.properties
+                    retention-days: 5

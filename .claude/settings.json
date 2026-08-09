@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(git -C \"c:\\\\Users\\\\irene.angreini_izeno\\\\Documents\\\\Code\\\\WebGoat\\\\webgoat-github\" status --short)",
+      "PowerShell(git -C \"c:\\\\Users\\\\irene.angreini_izeno\\\\Documents\\\\Code\\\\WebGoat\\\\webgoat-github\" diff -- .github/)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:help.sonatype.com)",
+      "PowerShell(python -c \"import yaml,sys; d=yaml.safe_load\\(open\\(r'.github/workflows/build.yml'\\)\\); print\\('OK'\\); print\\(list\\(d['jobs']['build'].keys\\(\\)\\)\\); print\\([s.get\\('name', s.get\\('uses'\\)\\) for s in d['jobs']['build']['steps']]\\)\")",
+      "PowerShell(pre-commit run check-yaml --files .github/workflows/build.yml)",
+      "PowerShell(python -m pip install --quiet pyyaml)",
+      "PowerShell(python -c \"import yaml; d=yaml.safe_load\\(open\\(r'.github/workflows/build.yml'\\)\\); print\\('YAML OK'\\); print\\('build keys:', list\\(d['jobs']['build'].keys\\(\\)\\)\\); [print\\(' -', s.get\\('name', s.get\\('uses'\\)\\)\\) for s in d['jobs']['build']['steps']]\")",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.github.com)"
+    ]
+  }
+}
