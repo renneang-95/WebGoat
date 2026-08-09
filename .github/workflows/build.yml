@@ -174,3 +174,4 @@ jobs:
                     name: build-info
                     path: build-info.properties
                     retention-days: 5
+                    
