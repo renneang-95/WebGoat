@@ -151,6 +151,14 @@ jobs:
                     scan-targets: pom.xml
                     stage: build
 
+            -   name: Display Lifecycle report URL
+                run: |
+                    echo "Scan ID:"
+                    echo "${{ steps.lifecycle.outputs.scan-id }}"
+
+                    echo "Lifecycle Report:"
+                    echo "${{ steps.lifecycle.outputs.report-url }}"
+
             -   name: Verify Java and Maven 2
                 run: |
                     echo "=== JAVA ==="
