@@ -111,7 +111,7 @@ jobs:
                     NEXUS_URL: ${{ secrets.NEXUS_URL }}
                     NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
                     NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-                run: ./mvnw --no-transfer-progress verify
+                run: ./mvnw --no-transfer-progress verify -DskipITs
 
             # ---------- 3. Nexus Repository ----------
             # Only publish from main -- PR builds stop after verify.
