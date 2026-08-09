@@ -57,8 +57,14 @@ jobs:
                 with:
                     cache: 'maven'
 
+            # The wrapper pins the Maven version, so the runner needs no Maven
+            # installed. mvnw is committed 100755, but re-assert it here in case
+            # a runner's checkout drops the mode -- it persists for later steps.
+            -   name: Make Maven wrapper executable
+                run: chmod +x ./mvnw
+
             # ---------- 2. Nexus Repository credentials ----------
-            # mvn deploy authenticates by <server><id>, so the ids used in
+            # ./mvnw deploy authenticates by <server><id>, so the ids used in
             # altDeploymentRepository below must exist in settings.xml.
             # ${env.*} is resolved by Maven at runtime -- no secrets on disk.
             -   name: Configure Maven settings for Nexus
@@ -101,7 +107,7 @@ jobs:
                     NEXUS_URL: ${{ secrets.NEXUS_URL }}
                     NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
                     NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-                run: mvn --no-transfer-progress verify
+                run: ./mvnw --no-transfer-progress verify
 
             # ---------- 3. Nexus Repository ----------
             # Only publish from main -- PR builds stop after verify.
@@ -112,7 +118,7 @@ jobs:
                     NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
                     NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
                 run: |
-                    mvn --no-transfer-progress deploy -DskipTests \
+                    ./mvnw --no-transfer-progress deploy -DskipTests \
                       -DaltSnapshotDeploymentRepository="nexus-snapshots::${NEXUS_URL}/repository/maven-snapshots/" \
                       -DaltReleaseDeploymentRepository="nexus::${NEXUS_URL}/repository/maven-releases/"
 
@@ -129,9 +135,9 @@ jobs:
                 run: |
                     set -euo pipefail
 
-                    GROUP_ID=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.groupId)
-                    ARTIFACT_ID=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.artifactId)
-                    BASE_VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+                    GROUP_ID=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.groupId)
+                    ARTIFACT_ID=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.artifactId)
+                    BASE_VERSION=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.version)
                     GROUP_PATH="${GROUP_ID//.//}"
 
                     if [[ "$BASE_VERSION" == *-SNAPSHOT ]]; then

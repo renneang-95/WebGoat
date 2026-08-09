@@ -11,7 +11,8 @@
       "PowerShell(python -c \"import yaml; d=yaml.safe_load\\(open\\(r'.github/workflows/build.yml'\\)\\); print\\('YAML OK'\\); print\\('build keys:', list\\(d['jobs']['build'].keys\\(\\)\\)\\); [print\\(' -', s.get\\('name', s.get\\('uses'\\)\\)\\) for s in d['jobs']['build']['steps']]\")",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:docs.github.com)",
-      "PowerShell(python \"C:\\\\Users\\\\IRENE~1.ANG\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-irene-angreini-izeno-Documents-Code-WebGoat-webgoat-github\\\\2355baf3-8c23-4aa7-86fa-99cf776633e3\\\\scratchpad\\\\check.py\")"
+      "PowerShell(python \"C:\\\\Users\\\\IRENE~1.ANG\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-irene-angreini-izeno-Documents-Code-WebGoat-webgoat-github\\\\2355baf3-8c23-4aa7-86fa-99cf776633e3\\\\scratchpad\\\\check.py\")",
+      "PowerShell(git ls-files .mvn/; echo \"--- MVNW_USERNAME support in mvnw:\"; Select-String -Path mvnw -Pattern \"MVNW_USERNAME|MVNW_PASSWORD|wrapperUrl|distributionUrl\" | ForEach-Object { \"$\\($_.LineNumber\\): $\\($_.Line.Trim\\(\\)\\)\" })"
     ]
   }
 }
