@@ -57,8 +57,20 @@ jobs:
                     cache: 'maven'
             -   name: Verify Java and Maven
                 run: |
+                    echo "=== JAVA ==="
                     java -version
-                    echo "JAVA_HOME=$JAVA_HOME"
+
+                    echo "=== JAVAC ==="
+                    javac -version
+
+                    echo "=== JAVA_HOME ==="
+                    echo "$JAVA_HOME"
+
+                    echo "=== JAVA LOCATION ==="
+                    which java
+                    which javac
+
+                    echo "=== MAVEN ==="
                     ./mvnw -version
 
             # The wrapper pins the Maven version, so the runner needs no Maven
