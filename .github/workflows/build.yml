@@ -137,7 +137,7 @@ jobs:
                 run: |
                     ./mvnw \
                     -s "$RUNNER_TEMP/maven-settings.xml" \
-                    --no-transfer-progress \
+                    -Dmaven.repo.local="$RUNNER_TEMP/m2" \
                     verify \
                     -DskipITs
 
