@@ -115,7 +115,7 @@ jobs:
                         <mirror>
                             <id>nexus-public</id>
                             <mirrorOf>*</mirrorOf>
-                            <url>${env.NEXUS_URL}/repository/maven-public/</url>
+                            <url>${env.NEXUS_URL}/repository/maven-central/</url>
                         </mirror>
                         </mirrors>
 
