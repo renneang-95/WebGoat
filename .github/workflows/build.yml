@@ -137,6 +137,7 @@ jobs:
                 run: |
                     ./mvnw \
                     -s "$RUNNER_TEMP/maven-settings.xml" \
+                    -Dmaven.repo.local="$RUNNER_TEMP/m2" \
                     verify \
                     -DskipITs
 
@@ -144,12 +145,28 @@ jobs:
                 id : lifecycle
                 uses: sonatype/actions/evaluate@v1
                 with:
-                    iq-server-url: ${{ secrets.IQ_SERVER_URL }}
+                    iq-server-url: http://13.212.100.205:8070/
                     username: ${{ secrets.IQ_USERNAME }}
                     password: ${{ secrets.IQ_PASSWORD }}
                     application-id: WebGoat__renneang-95
                     scan-targets: pom.xml
                     stage: build
+                    upload-sarif-file: true
+            # Fetch the SBOM file associated with the previous Sonatype Lifecycle run
+
+            -   name: Fetch SBOM
+                uses: sonatype/actions/fetch-sbom@v1
+                if: ( success() || failure() ) && steps.lifecycle.outputs.scan-id
+                with:
+                    iq-server-url: http://13.212.100.205:8070/
+                    username: ${{ secrets.IQ_USERNAME }}
+                    password: ${{ secrets.IQ_PASSWORD }}
+                    application-id: WebGoat__renneang-95
+                    scan-id: ${{ steps.lifecycle.outputs.scan-id }}
+                    sbom-standard: cyclonedx
+                    sbom-version: 1.5
+                    sbom-format: json
+                    artifact-name: WebGoat-sbom.json
 
             -   name: Display Lifecycle report URL
                 run: |
