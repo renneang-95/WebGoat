@@ -167,7 +167,7 @@ jobs:
                     sbom-standard: cyclonedx
                     sbom-version: 1.5
                     sbom-format: json
-                    artifact-name: WebGoat-sbom.json
+                    artifact-name: WebGoat-sbom
 
             -   name: Display Lifecycle report URL
                 run: |
