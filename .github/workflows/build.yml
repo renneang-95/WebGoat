@@ -144,6 +144,7 @@ jobs:
             -   name: Sonatype Lifecycle scan
                 id : lifecycle
                 uses: sonatype/actions/evaluate@v1
+                if: ( success() || failure() ) 
                 with:
                     iq-server-url: http://13.212.100.205:8070/
                     username: ${{ secrets.IQ_USERNAME }}
