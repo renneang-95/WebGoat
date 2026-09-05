@@ -1,0 +1,46 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+# Frogbot Scan and Fix does the following:
+# Automatically creates pull requests with fixes for vulnerable project dependencies.
+# Uses JFrog Xray to scan the project.
+# Read more about Frogbot here - https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot
+
+# Some projects require creating a frogbot-config.yml file. Read more about it here - https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot/setup-frogbot/frogbot-configuration
+
+name: "Frogbot Scan and Fix"
+on:
+  workflow_dispatch:
+  
+permissions:
+  id-token: write
+  contents: read
+  
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup JFrog CLI (OIDC)
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: https://trialfd1rjy.jfrog.io
+        with:
+          oidc-provider-name: krypto-data-github-oidc
+          oidc-audience: krypto-data-github-oidc
+
+      - name: Create DLT manifest
+        run: echo "KriptoStream DLT data feed manifest" > dlt-manifest.txt
+
+      - name: Upload artifact and collect build info
+        run: |
+          jf rt upload dlt-manifest.txt krypto-data-npm-dev-local/ \
+            --build-name=krypto-build --build-number=${{ github.run_number }}
+          jf rt build-collect-env krypto-build ${{ github.run_number }}
+          jf rt build-add-git krypto-build ${{ github.run_number }}
+          jf rt build-publish krypto-build ${{ github.run_number }}
