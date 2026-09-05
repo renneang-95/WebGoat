@@ -43,4 +43,4 @@ jobs:
             --build-name=krypto-build --build-number=${{ github.run_number }}
           jf rt build-collect-env krypto-build ${{ github.run_number }}
           jf rt build-add-git krypto-build ${{ github.run_number }}
-          jf rt build-publish krypto-build ${{ github.run_number }}
+          jf rt build-publish krypto-build ${{ github.run_number }} --project=krypto-data
