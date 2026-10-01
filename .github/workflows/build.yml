@@ -257,18 +257,35 @@ jobs:
                 run: |
                     set -euo pipefail
 
-                    GROUP_ID=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.groupId)
-                    ARTIFACT_ID=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.artifactId)
-                    BASE_VERSION=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.version)
+                    # A trailing slash in the secret would yield "//repository",
+                    # which Maven tolerates but Nexus rejects for plain curl.
+                    NEXUS_URL="${NEXUS_URL%/}"
+
+                    # stderr dropped: JDK 25 prints jansi/Unsafe warnings there.
+                    GROUP_ID=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.groupId 2>/dev/null)
+                    ARTIFACT_ID=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.artifactId 2>/dev/null)
+                    BASE_VERSION=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.version 2>/dev/null)
                     GROUP_PATH="${GROUP_ID//.//}"
 
                     if [[ "$BASE_VERSION" == *-SNAPSHOT ]]; then
                       NEXUS_REPO=maven-snapshots
-                      curl -sf -u "$NEXUS_USERNAME:$NEXUS_PASSWORD" \
-                        "${NEXUS_URL}/repository/${NEXUS_REPO}/${GROUP_PATH}/${ARTIFACT_ID}/${BASE_VERSION}/maven-metadata.xml" \
-                        -o /tmp/maven-metadata.xml
+                      METADATA="$RUNNER_TEMP/maven-metadata.xml"
+                      METADATA_URL="${NEXUS_URL}/repository/${NEXUS_REPO}/${GROUP_PATH}/${ARTIFACT_ID}/${BASE_VERSION}/maven-metadata.xml"
+
+                      HTTP_CODE=$(curl -sS -u "$NEXUS_USERNAME:$NEXUS_PASSWORD" \
+                        -o "$METADATA" -w '%{http_code}' "$METADATA_URL" || true)
+                      echo "GET $METADATA_URL -> HTTP $HTTP_CODE"
+
+                      # Fall back to the metadata the deploy step wrote into the
+                      # local repo (id "nexus-snapshots") if Nexus refuses the read.
+                      if [[ "$HTTP_CODE" != 200 ]]; then
+                        METADATA="$HOME/.m2/repository/${GROUP_PATH}/${ARTIFACT_ID}/${BASE_VERSION}/maven-metadata-nexus-snapshots.xml"
+                        echo "Falling back to local deploy metadata: $METADATA"
+                        test -f "$METADATA" || { echo "::error::No snapshot metadata available"; exit 1; }
+                      fi
+
                       EXACT_VERSION=$(grep -oP '(?<=<value>)[^<]+(?=</value>)' \
-                        /tmp/maven-metadata.xml | tail -1)
+                        "$METADATA" | tail -1)
                     else
                       NEXUS_REPO=maven-releases
                       EXACT_VERSION="$BASE_VERSION"
