@@ -146,7 +146,7 @@ jobs:
                 uses: sonatype/actions/evaluate@v1
                 if: ( success() || failure() )
                 with:
-                    iq-server-url: http://13.228.75.96:8081/
+                    iq-server-url: http://13.228.75.96:8070/
                     username: ${{ secrets.IQ_USERNAME }}
                     password: ${{ secrets.IQ_PASSWORD }}
                     application-id: WebGoat__renneang-95
@@ -159,7 +159,7 @@ jobs:
                 uses: sonatype/actions/fetch-sbom@v1
                 if: ( success() || failure() ) && steps.lifecycle.outputs.scan-id
                 with:
-                    iq-server-url: http://13.228.75.96:8081/
+                    iq-server-url: http://13.228.75.96:8070/
                     username: ${{ secrets.IQ_USERNAME }}
                     password: ${{ secrets.IQ_PASSWORD }}
                     application-id: WebGoat__renneang-95
